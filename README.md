@@ -64,7 +64,7 @@
     - データ 2: udon/r3-kenritsu-jidosho.the-best.csv
     - データ 3: udon/GetAppList.txt
     - データ 4: udon/Gemfile
-    - データ 5: udon/Gemfile
+    - データ 5: udon/Rakefile.rb
     - 説明書
       1. コードを実行します: rake
       2. すべての処理されたデータが配置される「ProcessFiles」フォルダーがあります。
