@@ -13,6 +13,7 @@ file = File.open(file_path, "w")
 sorted_data = csv_data.sort_by { |row| [-row[6].to_i, row[5].to_i, row[4], 
 # > 作者(英語 A-Z > 50 音順 > 漢字はソートしなくて、後ろに置く)
                                         row[2].split.first] }
+file.puts "順位, 資料名, 著者名, 出版者, 複本数, 利用回数"
 sorted_data.each do |row|
     file.print row
 end 
