@@ -60,7 +60,14 @@
   - カービィ
     - データ 1: 
   - うどん
-    - データ 1: 
+    - データ 1: udon/maturi_reuslt.txt
+    - データ 2: udon/r3-kenritsu-jidosho.the-best.csv
+    - データ 3: udon/GetAppList.txt
+    - データ 4: udon/Gemfile
+    - データ 5: udon/Gemfile
+    - 説明書
+      1. コードを実行します: rake
+      2. すべての処理されたデータが配置される「ProcessFiles」フォルダーがあります。
 
 - BONUS:
   - 出力ファイルをcsvファイルとして保存する
