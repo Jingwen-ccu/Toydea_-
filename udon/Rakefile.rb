@@ -4,6 +4,8 @@ require 'roo'
 require 'roo-xls'
 require 'csv'
 require 'json'
+#require 'axlsx'
+require 'write_xlsx'
 
 #check has file?
 def isFileExist(file_name)
@@ -45,29 +47,38 @@ task :ProcessAllTasks do
   puts "Processing all Tasks..."
   Rake::Task[:Preprocess].invoke
 
+  
+  
+
   #Task1-1
   #Task1-2
   if(isFileExist("matsuri_list.xlsx"))
+    puts "Processing Task: Matsuri..."
     Rake::Task[:processMatsuriMonth].invoke
     Rake::Task[:processMatsuriLocation].invoke 
+    puts "Finish Task: Matsuri (1/3)"
   else
     puts "Can't find matsuri_list.xlsx"
   end
 
   #Task2
   if(isFileExist("r3-kenritsu-jidosho.the-best.csv"))
+    puts "Processing Task: Books..."
     Rake::Task[:processBooks].invoke
+    puts "Finish Task: Books (2/3)"
   else
     puts "Can't find r3-kenritsu-jidosho.the-best.csv"
   end
 
   #Task3
   if(isFileExist("GetAppList.txt"))
+    puts "Processing Task: Apps..."
     Rake::Task[:processApps].invoke
+    puts "Finish Task: Apps (3/3)"
   else
     puts "Can't find GetAppList.txt"
   end
-  
+ 
   puts "Process finishing, Please check your Folder \"ProcessFiles\"."
 end
 
@@ -76,20 +87,18 @@ task :Preprocess do
 
   #Delete old datas
   if(isDirExist("ProcessFiles"))
-    currentDir = Dir.getwd
-    newDirPath = File.join(currentDir, "ProcessFiles");
+    newDirPath = File.join(Dir.getwd, "ProcessFiles");
     FileUtils.remove_dir(newDirPath, true)
   end
 
   #Create new Folder
-  currentDir = Dir.getwd
 
   #Folder: ProcessFiles
-  processFilesDirPath = File.join(currentDir, "ProcessFiles");
+  processFilesDirPath = File.join(Dir.getwd, "ProcessFiles");
   Dir.mkdir(processFilesDirPath)
 
   #Folder: ProcessFiles\Matsuri
-  matsuriDirPath = File.join(currentDir, "ProcessFiles\\Matsuri");
+  matsuriDirPath = File.join(Dir.getwd, "ProcessFiles\\Matsuri");
   Dir.mkdir(matsuriDirPath)
   Dir.chdir("ProcessFiles\\Matsuri")
   Dir.mkdir("Months")
@@ -97,12 +106,15 @@ task :Preprocess do
   Dir.chdir("..")
   Dir.chdir("..")
 
-  booksDirPath = File.join(currentDir, "ProcessFiles\\Books");
+  booksDirPath = File.join(Dir.getwd, "ProcessFiles\\Books");
   Dir.mkdir(booksDirPath)
 
-  sortAppsDirPath = File.join(currentDir, "ProcessFiles\\Apps");
+  sortAppsDirPath = File.join(Dir.getwd, "ProcessFiles\\Apps");
   Dir.mkdir(sortAppsDirPath)
 end
+
+
+
 
 #Task:1-1
 task :processMatsuriMonth do
@@ -113,20 +125,57 @@ task :processMatsuriMonth do
     totalRows = excel.sheet(0).last_row
     beginRowData = excel.sheet(0).row(1)
     monthsDirPath = File.join(Dir.pwd, "ProcessFiles\\Matsuri\\Months")
+  
     (2..totalRows).each do |rowIndex|
       curretRowData = excel.sheet(0).row(rowIndex)
-      filePath = File.join(monthsDirPath, curretRowData[3])
-      if(isFileExist(filePath))
-        File.open(filePath, 'a') do |txtFile|
+
+      #Output txt file
+      if(isFileExist("ProcessFiles\\Matsuri\\Months\\#{curretRowData[3]}.txt"))
+        File.open("#{monthsDirPath}\\#{curretRowData[3]}.txt", 'a') do |txtFile|
           txtFile.puts curretRowData.join(', ')
         end
       else
-        File.open(filePath, 'a') do |txtFile|
+        File.open("#{monthsDirPath}\\#{curretRowData[3]}.txt", 'a') do |txtFile|
           txtFile.puts beginRowData.join(', ')
           txtFile.puts curretRowData.join(', ')
         end
       end
+
+      #Output csv file
+      if(isFileExist("ProcessFiles\\Matsuri\\Months\\#{curretRowData[3]}.csv"))
+        File.open("#{monthsDirPath}\\#{curretRowData[3]}.csv", 'a') do |csvFile|
+          # 写入BOM
+          csvFile.write("\xEF\xBB\xBF")
+          csvFile << (curretRowData).join(',') + " \n"
+        end
+      else
+        File.open("#{monthsDirPath}\\#{curretRowData[3]}.csv", 'a') do |csvFile|
+          # 写入BOM
+          csvFile.write("\xEF\xBB\xBF")
+          csvFile << (beginRowData).join(',') + " \n"
+          csvFile << (curretRowData).join(',') + " \n"
+        end
+      end
     end
+  
+
+    #Output xlsx file: By copy csv contents
+    allCSVFiles = Dir.entries(File.join("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Months"))
+    allCSVFiles = allCSVFiles.reject { |file| file == '.' || file == '..' || File.extname(file) == '.txt' || File.extname(file) == '.xlsx' }
+
+    allCSVFiles.each do |csvFile|
+      csvData = CSV.read("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Months\\#{csvFile}")
+      workbook = WriteXLSX.new("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Months\\#{File.basename(csvFile, '.*')}.xlsx")
+      worksheet = workbook.add_worksheet('Sheet 1')
+      csvData.each_with_index do |row, row_index|
+        row.each_with_index do |cell_value, col_index|
+          worksheet.write(row_index, col_index, cell_value)
+        end
+      end
+      # 關閉 Excel 檔案
+      workbook.close
+    end
+    
 end
 
 #Task:1-2
@@ -138,19 +187,54 @@ task :processMatsuriLocation do
     totalRows = excel.sheet(0).last_row
     beginRowData = excel.sheet(0).row(1)
     locationsDirPath = File.join(Dir.pwd, "ProcessFiles\\Matsuri\\Locations")
+
     (2..totalRows).each do |rowIndex|
       curretRowData = excel.sheet(0).row(rowIndex)
-      filePath = File.join(locationsDirPath, curretRowData[1])
-      if(isFileExist(filePath))
-        File.open(filePath, 'a') do |txtFile|
+      
+      #Output txt file
+      if(isFileExist("ProcessFiles\\Matsuri\\Locations\\#{curretRowData[1]}.txt"))
+        File.open("#{locationsDirPath}\\#{curretRowData[1]}.txt", 'a') do |txtFile|
           txtFile.puts curretRowData.join(', ')
         end
       else
-        File.open(filePath, 'a') do |txtFile|
+        File.open("#{locationsDirPath}\\#{curretRowData[1]}.txt", 'a') do |txtFile|
           txtFile.puts beginRowData.join(', ')
           txtFile.puts curretRowData.join(', ')
         end
       end
+
+      #Output csv file
+      if(isFileExist("ProcessFiles\\Matsuri\\Locations\\#{curretRowData[1]}.csv"))
+        File.open("#{locationsDirPath}\\#{curretRowData[1]}.csv", 'a') do |csvFile|
+          # 写入BOM
+          csvFile.write("\xEF\xBB\xBF")
+          csvFile << (curretRowData).join(',') + " \n"
+        end
+      else
+        File.open("#{locationsDirPath}\\#{curretRowData[1]}.csv", 'a') do |csvFile|
+          # 写入BOM
+          csvFile.write("\xEF\xBB\xBF")
+          csvFile << (beginRowData).join(',') + " \n"
+          csvFile << (curretRowData).join(',') + " \n"
+        end
+      end
+    end
+
+    #Output xlsx file: By copy csv contents
+    allCSVFiles = Dir.entries(File.join("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Locations"))
+    allCSVFiles = allCSVFiles.reject { |file| file == '.' || file == '..' || File.extname(file) == '.txt' || File.extname(file) == '.xlsx' }
+
+    allCSVFiles.each do |csvFile|
+      csvData = CSV.read("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Locations\\#{csvFile}")
+      workbook = WriteXLSX.new("#{Dir.pwd}\\ProcessFiles\\Matsuri\\Locations\\#{File.basename(csvFile, '.*')}.xlsx")
+      worksheet = workbook.add_worksheet('Sheet 1')
+      csvData.each_with_index do |row, row_index|
+        row.each_with_index do |cell_value, col_index|
+          worksheet.write(row_index, col_index, cell_value)
+        end
+      end
+      # 關閉 Excel 檔案
+      workbook.close
     end
 end
 
@@ -159,7 +243,7 @@ task :processBooks do
   
   #Copy
   bookCSV = CSV.read('r3-kenritsu-jidosho.the-best.csv', headers: :second_row)
-  sortCSVPath = File.join(Dir.pwd, "ProcessFiles\\Books\\sortCSV")
+  sortCSVPath = File.join(Dir.pwd, "ProcessFiles\\Books\\sortCSV.txt")
   CSV.open(sortCSVPath, 'w') do |csv|
     bookCSV.each do |row|
       csv << row
@@ -178,12 +262,38 @@ task :processBooks do
   ]
   end
 
-  #Sort data writing
-  CSV.open(sortCSVPath, 'w') do |csv|
+  #Sort data writing to TXT
+  CSV.open(sortCSVPath, 'w') do |txtFile|
     sorted_data.each do |row|
-      csv << row
+      txtFile << row
     end
   end
+
+  #Sort data writing to CSV
+  File.open("#{File.join(Dir.pwd, "ProcessFiles\\Books\\sortCSV.csv")}", 'a') do |csvFile|
+    # 写入BOM
+    csvFile.write("\xEF\xBB\xBF")
+    sorted_data.each do |row|
+      csvFile << row
+    end
+  end
+
+  #Sort data writing to xlsx
+  #Output xlsx file: By copy csv contents
+  File.open("#{File.join(Dir.pwd, "ProcessFiles\\Books\\sortCSV.csv")}", 'a') do |csvFile|
+    csvData = CSV.read(csvFile)
+    workbook = WriteXLSX.new("#{Dir.pwd}\\ProcessFiles\\Books\\sortCSV.xlsx")
+    worksheet = workbook.add_worksheet('Sheet 1')
+    csvData.each_with_index do |row, row_index|
+      row.each_with_index do |cell_value, col_index|
+        worksheet.write(row_index, col_index, cell_value)
+      end
+    end
+    # 關閉 Excel 檔案
+    workbook.close
+  end
+
+  
 end
 
 #Task:3
@@ -222,6 +332,31 @@ task :processApps do
       file.puts("App ID: #{app['appid']}, App Name: #{app['name']}")
     end
   end
+
+  #Sort data writing to CSV
+  File.open("#{File.join(Dir.pwd, "ProcessFiles\\Apps\\sortApps.csv")}", 'a') do |csvFile|
+    workbook = WriteXLSX.new("#{Dir.pwd}\\ProcessFiles\\Apps\\sortApps.xlsx")
+    worksheet = workbook.add_worksheet('Sheet 1')
+    current_row = 1  # 初始化当前行
+
+
+    sorted_data.each do |app|
+      # 將每一筆資料寫入檔案
+      csvFile.write("\xEF\xBB\xBF")
+      csvFile.puts("App ID: #{app['appid']}, App Name: #{app['name']}, ")
+    
+      worksheet.write(0, 0, "\xEF\xBB\xBF")
+
+      worksheet.write(current_row, 0, "App ID: #{app['appid']}")
+      worksheet.write(current_row, 1, "App Name: #{app['name']}")
+
+      current_row += 1
+
+    end
+
+    workbook.close
+  end
+
 end
 
 task default: :ProcessAllTasks
