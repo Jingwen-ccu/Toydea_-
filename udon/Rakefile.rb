@@ -8,7 +8,6 @@ require 'json'
 #check has file?
 def isFileExist(file_name)
   file_path = File.join(Dir.pwd, file_name)
-  puts file_path
   File.exist?(file_path)
 end
 
@@ -69,6 +68,7 @@ task :ProcessAllTasks do
     puts "Can't find GetAppList.txt"
   end
   
+  puts "Process finishing, Please check your Folder \"ProcessFiles\"."
 end
 
 #Task: Preprocess
@@ -156,9 +156,7 @@ end
 
 #Task:2
 task :processBooks do
-  #preprocess
-  currentDir = Dir.getwd
-
+  
   #Copy
   bookCSV = CSV.read('r3-kenritsu-jidosho.the-best.csv', headers: :second_row)
   sortCSVPath = File.join(Dir.pwd, "ProcessFiles\\Books\\sortCSV")
@@ -167,25 +165,30 @@ task :processBooks do
       csv << row
     end
   end
-  
-  #SORT
+
+  #Sorting
   sortCSV = CSV.read(sortCSVPath, headers: true)
-  sortCSV = sortCSV.sort_by do |row|
+
+  sorted_data = sortCSV.sort_by do |row|
   [
-      -row["利用回数"].to_i,
-      row["複本数"].to_i,
-      row["出版年"], 
-      processAuthorNameWeight(row["著者名"])
+    -row["利用回数"].to_i,
+    row["複本数"].to_i,
+    row["出版年"], 
+    processAuthorNameWeight(row["著者名"])
   ]
   end
 
+  #Sort data writing
+  CSV.open(sortCSVPath, 'w') do |csv|
+    sorted_data.each do |row|
+      csv << row
+    end
+  end
 end
 
 #Task:3
 task :processApps do
-  #preprocess
-  currentDir = Dir.getwd
-  
+
   #Sort
   appPath = File.join(Dir.pwd, "GetAppList.txt");
   appData = File.read(appPath)
@@ -194,7 +197,7 @@ task :processApps do
   app_list.each do |app|
     app_id = app['appid']
     app_name = app['name']
-    #uts "App ID: #{app_id}, App Name: #{app_name}"
+    #puts "App ID: #{app_id}, App Name: #{app_name}"
   end
 
   sorted_data = app_list.sort_by do |app|
