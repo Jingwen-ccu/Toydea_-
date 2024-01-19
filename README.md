@@ -74,6 +74,7 @@
   - 出力ファイルをxlsファイルとして保存する
   - データの位置にあるファイルが完全一致にしているかの判定機能
     - eq: ruby compare.rb guan/maturi_reuslt.txt guan/maturi_reuslt2.txt
+      - 条件: file1, file2 の拡張子が同じ時だけ
       - output: 完全一致 / success
       - output: 12 行目が違う, file1: .... file2: ....
   - 自動ですべてのファイルを比較する機能
