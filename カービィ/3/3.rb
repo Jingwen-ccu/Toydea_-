@@ -1,11 +1,11 @@
 require 'json'
 
-json_file_path = 'GetAppList.txt'
-json_data = File.read(json_file_path)
-output_json_file_path = 'output.txt'
+file_path = 'GetAppList.txt'
+data = File.read(file_path)
+output_file_path = '3.txt'
 
 # 將JSON轉換為Ruby數據結構
-data = JSON.parse(json_data)
+data = JSON.parse(data)
 
 def custom_sort(app)
     name = app['name'].downcase  # 忽略大小寫
@@ -24,9 +24,9 @@ def custom_sort(app)
 end
 
 sorted_apps = data['applist']['apps'].sort_by(&method(:custom_sort))
-#File.write(output_json_file_path, JSON.pretty_generate('applist' => { 'apps' => sorted_apps }))
+#File.write(output_file_path, JSON.pretty_generate('applist' => { 'apps' => sorted_apps }))
 
 formatted_string = sorted_apps.map do |app|
     "appid: #{app['appid']}, name: #{app['name']}"
 end.join("\n")
-File.write(output_json_file_path, formatted_string) 
+File.write(output_file_path, formatted_string) 
